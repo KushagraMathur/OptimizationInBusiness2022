@@ -1,0 +1,72 @@
+! Data file for Assignment Problem 2
+
+! Years being considered
+years: [2023
+        2024
+        2025]
+! Categories being considered
+categories: ['Engineer'
+             'IT Consultant'
+             'Business Consultant']
+
+! The current number of employees (Year 2022)
+currentNoOfEmployees: [('Engineer') 3000
+                       ('IT Consultant') 500
+                       ('Business Consultant') 1000]
+
+! The required number of employees per category pre year
+requiredNoOfEmployees: [('Engineer' 2023) 2000
+                        ('Engineer' 2024) 1200
+                        ('Engineer' 2025) 500
+                        ('IT Consultant' 2023) 600
+                        ('IT Consultant' 2024) 1200
+                        ('IT Consultant' 2025) 2000
+                        ('Business Consultant' 2023) 1100
+                        ('Business Consultant' 2024) 1900
+                        ('Business Consultant' 2025) 2500]
+
+! The max number of employees hired per category pre year
+maxEmployeesHiredPerCategoryPerYear:  [('Engineer' 2023) 400
+                                       ('Engineer' 2024) 400
+                                       ('Engineer' 2025) 400
+                                       ('IT Consultant' 2023) 900
+                                       ('IT Consultant' 2024) 900
+                                       ('IT Consultant' 2025) 900
+                                       ('Business Consultant' 2023) 800
+                                       ('Business Consultant' 2024) 800
+                                       ('Business Consultant' 2025) 800]
+
+! The number of employees transferred per category. Ex. ('Engineer' to 'IT Consultant') 400
+employeeTransferNumbers: [('Engineer' 'Engineer') 0
+                          ('Engineer' 'IT Consultant') 400
+                          ('Engineer' 'Business Consultant') 0
+                          ('IT Consultant' 'Engineer') 200
+                          ('IT Consultant' 'IT Consultant') 0
+                          ('IT Consultant' 'Business Consultant') 9999
+                          ('Business Consultant' 'Engineer') 0
+                          ('Business Consultant' 'IT Consultant') 300
+                          ('Business Consultant' 'Business Consultant') 0]
+
+! The turnover rate for each category, 1 => less than 1 year experience, 2 => more than 1 year experience.
+turnoverRatePerCategory: [('Engineer' 1) 0.12
+               ('Engineer' 2) 0.07
+               ('IT Consultant' 1) 0.15
+               ('IT Consultant' 2) 0.10
+               ('Business Consultant' 1) 0.10
+               ('Business Consultant' 2) 0.05]
+
+! The employee firing costs for each category per employee
+firingCostsPerCategory: [('Engineer') 100000
+                         ('IT Consultant') 120000
+                         ('Business Consultant') 140000]
+
+! The cost of converting employees from one category to the other.
+employeeConversionCostsPerCategory: [('Engineer' 'Engineer') 0
+                                     ('Engineer' 'IT Consultant') 5000
+                                     ('Engineer' 'Business Consultant') 0
+                                     ('IT Consultant' 'Engineer') 4000
+                                     ('IT Consultant' 'IT Consultant') 0
+                                     ('IT Consultant' 'Business Consultant') 7000
+                                     ('Business Consultant' 'Engineer') 0
+                                     ('Business Consultant' 'IT Consultant') 6000
+                                     ('Business Consultant' 'Business Consultant') 0]

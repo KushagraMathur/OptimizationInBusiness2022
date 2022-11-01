@@ -1,0 +1,149 @@
+model "hiringFiringModel"
+    uses "mmxprs"
+    declarations
+        START_YEAR = 2023
+        IT_CONSULTANT_CATEGORY = 'IT Consultant'
+        BUSINESS_CONSULTANT_CATEGORY = 'Business Consultant'
+        years: set of integer                                                           ! Integer set to hold the years from 2023-2025
+        categories: set of string                                                       ! String set to hold the categories "Engineering","IT Consulting","Business Consulting"
+    end-declarations
+    initialisations from "hiringFiringInput.dat"
+        years
+        categories
+    end-initialisations
+    declarations
+        totalEmployeesPerCategoryPerYear: array(categories,years) of mpvar              ! To hold the value for the total employees per category per year, ex. totalEmployeesPerCategoryPerYear["Engineering"][2023]
+        employeesHiredPerCategoryPerYear: array(categories,years) of mpvar              ! To hold the value for the total employees hired per category per year, ex. employeesHiredPerCategoryPerYear["Engineering"][2023]
+        employeesFiredPerCategoryPerYear: array(categories,years) of mpvar              ! To hold the value for the total employees fired per category per year, ex. employeesFiredPerCategoryPerYear["Engineering"][2023]
+        employeeTurnoverPerCategoryPerYear: array(categories,years) of mpvar            ! To hold the value for the total employees leaving HAL per category per year, ex. employeeTurnoverPerCategoryPerYear["Engineering"][2023]
+        employeeTransferNumbers: array(categories,categories) of integer                ! To hold the value for the max employees that can transfer from one category to another category, ex. employeeTransferNumbers["Engineering"]["IT Consulting"]. This is the value of the constraint.
+        employeeTransferConstraints: array(categories,categories,years) of mpvar        ! To hold the value of the maximum number for employees that can be transferred from one category to another per year employeeTransferConstraints["IT Consulting"]["Business Consulting"][2023]
+        totalConvertedTo: array(categories,years) of mpvar                              ! To hold the value of total employess who converted to a category in a year totalConvertedTo["Engineer"][2023]
+        totalConvertedFrom: array(categories,years) of mpvar                            ! To hold the value of total employess who converted from a category in a year totalConvertedFrom["Engineer"][2023]
+        currentNoOfEmployees: array(categories) of integer                              ! The current number of employees per category in the year 2022
+        requiredNoOfEmployees: array(categories,years) of integer                       ! The required number  of employees per category for the years (2023,2024,2025)
+        turnoverRatePerCategory: array(categories,integer) of real                      ! To hold the turnover rate per category for employees at HAL working<1 year=> turnoverRatePerCategory["Engineer"][1] and employees at HAL working>1 year => turnoverRatePerCategory["Engineer"][2]
+        maxEmployeesHiredPerCategoryPerYear: array(categories,years) of integer         ! To hold the value of the maximum employees that can be hired per category, per year
+        firingCostsPerCategory: array(categories) of integer                            ! To hold the value of the firing costs per category
+        employeeConversionCostsPerCategory: array(categories,categories) of integer     ! The cost associated with moving from one category to another
+        totalConversionCostPerCategoryPerYear: array(categories,years) of mpvar         ! To store the value of the total cost of converting from a category in a year
+        totalEmployeesPerCategoryPerYearConstraint: array(categories,years) of linctr   ! Constraints for the total number of employees in a category per year
+
+        ! ***** COMMENT OUT totalCosts AND UNCOMMENT totalFiring FOR RUNNING THE SECOND PART OF THE PROBLEM (MINIMISE COSTS) *****
+        totalCosts: mpvar
+        ! totalFiring: mpvar
+    end-declarations
+    initialisations from "opb_Korgaonkar_Mathur_Li_prob2.dat"
+        employeeTransferNumbers
+        currentNoOfEmployees
+        requiredNoOfEmployees
+        turnoverRatePerCategory
+        maxEmployeesHiredPerCategoryPerYear
+        firingCostsPerCategory
+        employeeConversionCostsPerCategory
+    end-initialisations
+    writeln('')
+
+    ! ***** COMMENT THE BELOW BLOCK OF CODE BEFORE RUNNING THE SECOND PART OF THE PROBLEM (MINIMISE COSTS) *****
+    ! Minimization function
+    totalFiring := sum(year in years,category in categories) employeesFiredPerCategoryPerYear(category,year)
+
+    totalCosts = sum(year in years,category in categories) (employeesFiredPerCategoryPerYear(category,year)*firingCostsPerCategory(category) + totalConversionCostPerCategoryPerYear(category,year))
+
+    ! ***** UNCOMMENT THE BELOW BLOCK OF CODE FOR RUNNING THE SECOND PART OF THE PROBLEM (MINIMISE COSTS) *****
+    ! ! Minimization function
+    ! totalCosts := sum(year in years,category in categories) (employeesFiredPerCategoryPerYear(category,year)*firingCostsPerCategory(category) + totalConversionCostPerCategoryPerYear(category,year))
+
+    ! totalFiring = sum(year in years,category in categories) employeesFiredPerCategoryPerYear(category,year)
+
+    ! Adding constraints
+    ! Adding the integer constraints
+    forall (category in categories) do
+        forall (year in years) do
+            totalEmployeesPerCategoryPerYear(category,year) is_integer
+            employeesFiredPerCategoryPerYear(category,year) is_integer
+            employeeTurnoverPerCategoryPerYear(category,year) is_integer
+            totalConversionCostPerCategoryPerYear(category,year) is_integer
+            employeesHiredPerCategoryPerYear(category,year) is_integer
+        end-do
+    end-do
+
+    ! Adding the constraints for the number of employees hired
+    forall (category in categories) do
+        forall (year in years) do
+            employeesHiredPerCategoryPerYear(category,year) <= maxEmployeesHiredPerCategoryPerYear(category,year)
+        end-do
+    end-do
+
+    ! Adding the constraints on the number of employee transfers
+    forall(year in years) do
+        forall(firstIndex in categories) do
+            forall(secondIndex in categories)  do
+                ! body...
+                employeeTransferConstraints(firstIndex,secondIndex,year) is_integer
+                if firstIndex = IT_CONSULTANT_CATEGORY and secondIndex = BUSINESS_CONSULTANT_CATEGORY then
+                    employeeTransferConstraints(firstIndex,secondIndex,year) <= totalEmployeesPerCategoryPerYear(secondIndex,year)/3
+                    else employeeTransferConstraints(firstIndex,secondIndex,year) <= employeeTransferNumbers(firstIndex,secondIndex)
+                end-if
+            end-do
+            ! Calculate the total people who were transfererd internally from a category (Left a department) for a year. This will help in calculating the total employees for the year
+            totalConvertedFrom(firstIndex,year) = sum(index in categories) employeeTransferConstraints(firstIndex,index,year)
+            ! Calculate the total people who were transfererd internally from a category (Joined a department). This will help in calculating the total employees for the year
+            totalConvertedTo(firstIndex,year) = sum(index in categories) employeeTransferConstraints(index,firstIndex,year)
+            ! Calculating the total cost for converting from a category for each year
+            totalConversionCostPerCategoryPerYear(firstIndex,year) = sum(index in categories) employeeTransferConstraints(firstIndex,index,year)*employeeConversionCostsPerCategory(firstIndex,index)
+        end-do
+    end-do
+
+    ! Adding constraints for employee turnover
+    forall(year in years) do
+        forall(category in categories) do
+            if year = START_YEAR then
+                employeeTurnoverPerCategoryPerYear(category,year) = currentNoOfEmployees(category)*turnoverRatePerCategory(category,2)
+            else employeeTurnoverPerCategoryPerYear(category,year) = employeesHiredPerCategoryPerYear(category,year-1)*turnoverRatePerCategory(category,1) + (totalEmployeesPerCategoryPerYear(category,year-1) - employeesHiredPerCategoryPerYear(category,year-1))*turnoverRatePerCategory(category,2)
+            end-if
+        end-do
+    end-do
+
+    ! Adding constraints for calculating total employees in an year
+    forall(category in categories) do
+        forall(year in years)  do
+            if year = START_YEAR then
+                totalEmployeesPerCategoryPerYear(category,year) = currentNoOfEmployees(category) + employeesHiredPerCategoryPerYear(category,year) - employeesFiredPerCategoryPerYear(category,year) + totalConvertedTo(category,year) - totalConvertedFrom(category,year) - employeeTurnoverPerCategoryPerYear(category,year)
+                totalEmployeesPerCategoryPerYearConstraint(category,year) := totalEmployeesPerCategoryPerYear(category,year) = requiredNoOfEmployees(category,year)
+            else
+                totalEmployeesPerCategoryPerYear(category,year) = totalEmployeesPerCategoryPerYear(category,year-1) + employeesHiredPerCategoryPerYear(category,year) - employeesFiredPerCategoryPerYear(category,year) + totalConvertedTo(category,year) - totalConvertedFrom(category,year) - employeeTurnoverPerCategoryPerYear(category,year)
+                totalEmployeesPerCategoryPerYearConstraint(category,year) := totalEmployeesPerCategoryPerYear(category,year) = requiredNoOfEmployees(category,year)
+            end-if
+        end-do
+    end-do
+
+    ! ***** COMMENT THE BELOW BLOCK OF CODE BEFORE RUNNING THE SECOND PART OF THE PROBLEM (MINIMISE COSTS) *****
+    ! Minimize total firing
+    minimise(totalFiring)
+    ! Display the computed values
+    writeln('Minimum firing required: ',getobjval)
+    writeln('')
+    writeln('Total Costs incurred in firing and training: ',getsol(totalCosts),' Euro')
+    writeln('')
+
+    ! ***** UNCOMMENT THE BELOW BLOCK OF CODE FOR RUNNING THE SECOND PART OF THE PROBLEM (MINIMISE COSTS) *****
+    ! ! Minimize total costs
+    ! minimise(totalCosts)
+    ! ! Display the computed values
+    ! writeln('Total firing: ',getsol(totalFiring))
+    ! writeln('')
+    ! writeln('Minimum costs required: ',getobjval, ' Euro')
+    ! writeln('')
+    forall(category in categories) do
+        forall(year in years)  do
+            writeln("Total ",category," Employees in the ",year,": ",getsol(totalEmployeesPerCategoryPerYear(category,year)))
+            writeln("Total ",category," Employees hired in ",year,": ",getsol(employeesHiredPerCategoryPerYear(category,year)))
+            writeln("Total ",category," Employees fired in ",year,": ",getsol(employeesFiredPerCategoryPerYear(category,year)))
+            writeln("Total Employees Converted to ",category," in ",year,": ",getsol(totalConvertedTo(category,year)))
+            writeln("Total Employees Converted from ",category," in ",year,": ",getsol(totalConvertedFrom(category,year)))
+            writeln("Total ",category," Employees turnover in ",year,": ",getsol(employeeTurnoverPerCategoryPerYear(category,year)))
+            writeln('')
+        end-do
+    end-do
+end-model
